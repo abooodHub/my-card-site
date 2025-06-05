@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>بطاقات التهنئة</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Amiri', serif; }
+  </style>
+</head>
+<body class="bg-gray-100 flex flex-col items-center p-4 min-h-screen">
+
+  <h1 class="text-3xl font-bold mb-6">صانع بطاقات التهنئة</h1>
+
+  <div class="w-full max-w-lg bg-white p-6 rounded-xl shadow-lg">
+    <label class="block mb-2 font-semibold">اختر الفئة:</label>
+    <select id="category" class="w-full p-2 border rounded-lg mb-4"></select>
+
+    <label class="block mb-2 font-semibold">اختر القالب:</label>
+    <select id="template" class="w-full p-2 border rounded-lg mb-4"></select>
+
+    <label class="block mb-2 font-semibold">نص التهنئة:</label>
+    <textarea id="message" rows="3" class="w-full p-2 border rounded-lg mb-4" placeholder="اكتب رسالتك هنا"></textarea>
+
+    <button id="makeBtn" class="w-full py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition">
+      إنشاء البطاقة
+    </button>
+  </div>
+
+  <div id="preview" class="mt-8 hidden flex flex-col items-center">
+    <canvas id="canvas" class="rounded-lg shadow-xl border"></canvas>
+    <a id="downloadBtn" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition" download="card.png">
+      تنزيل الصورة
+    </a>
+  </div>
+
+  <script>
+    const templatesList = {
+      "eid": ["eid_1.png", "eid_2.png", "eid_3.png"],
+      "birthday": ["birthday_1.png", "birthday_2.png"],
+      "congrats": ["congrats_1.png", "congrats_2.png"]
+    };
+
+    const categorySelect = document.getElementById("category");
+    const templateSelect = document.getElementById("template");
+
+    function populateCategories() {
+      categorySelect.innerHTML = Object.keys(templatesList)
+        .map(cat => `<option value="${cat}">${cat}</option>`)
+        .join("");
+      populateTemplates(categorySelect.value);
+    }
+
+    function populateTemplates(category) {
+      const files = templatesList[category] || [];
+      templateSelect.innerHTML = files
+        .map(f => `<option value="${f}">${f.replace(/_/g, " ").replace(".png", "")}</option>`)
+        .join("");
+    }
+
+    categorySelect.addEventListener("change", () => {
+      populateTemplates(categorySelect.value);
+    });
+
+    populateCategories();
+
+    document.getElementById("makeBtn").onclick = async () => {
+      const category = categorySelect.value;
+      const fileName = templateSelect.value;
+      const message = document.getElementById("message").value.trim();
+
+      if (!message) {
+        alert("يرجى كتابة نص التهنئة أولًا.");
+        return;
+      }
+
+      const img = new Image();
+      img.src = `static/templates/${category}/${fileName}`;
+      await img.decode();
+
+      const canvas = document.getElementById("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(img, 0, 0);
+
+      const fontSize = Math.floor(canvas.width / 10);
+      ctx.font = `${fontSize}px Amiri, serif`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "white";
+      ctx.strokeStyle = "black";
+      ctx.lineWidth = Math.floor(fontSize * 0.1);
+
+      const x = canvas.width / 2;
+      const y = canvas.height - (canvas.height * 0.1);
+
+      ctx.strokeText(message, x, y);
+      ctx.fillText(message, x, y);
+
+      document.getElementById("preview").classList.remove("hidden");
+      const downloadBtn = document.getElementById("downloadBtn");
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        downloadBtn.href = url;
+        downloadBtn.download = `card_${category}_${Date.now()}.png`;
+      });
+    };
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Amiri&display=swap" rel="stylesheet" />
+</body>
+</html>
